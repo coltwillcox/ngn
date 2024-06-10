@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"git.sr.ht/~blallo/conductor"
+	logz "git.sr.ht/~blallo/logz/interface"
 	"git.sr.ht/~blallo/logz/zlog"
 	"git.sr.ht/~blallo/notilog"
 	"github.com/godbus/dbus/v5"
@@ -13,36 +14,22 @@ import (
 )
 
 func main() {
-	log := zlog.NewConsoleLogger()
+	log := logFn()
+
 	ports, err := serial.GetPortsList()
 	if err != nil {
-		log.Err(map[string]any{
-			"msg": "Failed to get ports",
-			"err": err.Error(),
-		})
-		os.Exit(1)
+		log(logz.LogErr, "failed to get ports", err)
 	}
 	if len(ports) == 0 {
-		log.Err(map[string]any{
-			"msg": "No serial ports found",
-		})
-		os.Exit(1)
+		log(logz.LogErr, "no serial ports found")
 	}
 	for _, port := range ports {
-		log.Info(map[string]any{
-			"msg": fmt.Sprintf("Found port: %v\n", port),
-		})
+		log(logz.LogInfo, fmt.Sprintf("found port: %v\n", port))
 	}
 
-	mode := &serial.Mode{}
-
-	port, err := serial.Open("/dev/ttyACM0", mode)
+	port, err := serial.Open("/dev/ttyACM0", &serial.Mode{})
 	if err != nil {
-		log.Err(map[string]any{
-			"msg": "Failed to open port",
-			"err": err.Error(),
-		})
-		os.Exit(1)
+		log(logz.LogErr, "failed to open port", err)
 	}
 
 	msgCh := make(chan *dbus.Message, 100)
@@ -50,62 +37,49 @@ func main() {
 
 	l, err := notilog.NewNotiListener(msgCh)
 	if err != nil {
-		log.Err(map[string]any{
-			"msg": "failed to initialize listener",
-			"err": err.Error(),
-		})
-		os.Exit(1)
+		log(logz.LogErr, "failed to initialize listener", err)
 	}
 
 	go func() {
 		if err := l.Run(c); err != nil {
-			log.Err(map[string]any{
-				"msg": "execution failed",
-				"err": err.Error(),
-			})
-			os.Exit(1)
+			log(logz.LogErr, "execution failed", err)
 		}
-		log.Info(map[string]any{"msg": "exited successfully"})
+		log(logz.LogInfo, "exited successfully")
 	}()
 
-	for {
-		select {
-		case msg := <-msgCh:
-			if msg == nil {
-				log.Info(map[string]any{
-					"msg": "channel closed: exiting",
-				})
-				return
+	for msg := range msgCh {
+		if msg == nil {
+			log(logz.LogInfo, "channel closed: exiting")
+			return
+		}
+		notification, err := notilog.FromMessage(msg)
+		if err != nil {
+			if errors.Is(err, notilog.ErrNotANotification) {
+				log(logz.LogDebug, "not a notification")
+			} else {
+				log(logz.LogWarn, "failed translating to message", err)
 			}
-			notification, err := notilog.FromMessage(msg)
-			if err != nil {
-				if errors.Is(err, notilog.ErrNotANotification) {
-					log.Debug(map[string]any{
-						"msg": "not a notification",
-					})
-				} else {
-					log.Warn(map[string]any{
-						"msg": "failed translating to message",
-						"err": err.Error(),
-					})
-				}
-				continue
-			}
+			continue
+		}
+		log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notification))
 
-			log.Info(map[string]any{
-				"msg":     "message intercepted",
-				"headers": notilog.TranslateHeaders(msg.Headers),
-				"content": notification,
-			})
-			// Send to serial
-			_, err = port.Write([]byte(notification.Title))
-			if err != nil {
-				log.Err(map[string]any{
-					"msg": "Failed to write to port",
-					"err": err.Error(),
-				})
-				os.Exit(1)
-			}
+		// Send to serial
+		if _, err = port.Write([]byte(notification.Sender + notification.Title)); err != nil {
+			log(logz.LogErr, "failed to write to port", err)
+		}
+	}
+}
+
+func logFn() func(logz.LogLevel, string, ...error) {
+	log := zlog.NewConsoleLogger()
+	return func(level logz.LogLevel, msg string, errs ...error) {
+		data := map[string]any{"msg": msg}
+		if len(errs) > 0 && errs[0] != nil {
+			data["err"] = errs[0].Error()
+		}
+		log.Log(level, data)
+		if level == logz.LogErr {
+			os.Exit(1)
 		}
 	}
 }
