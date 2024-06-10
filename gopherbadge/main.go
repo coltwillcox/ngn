@@ -98,6 +98,7 @@ func main() {
 			}
 		}
 
+		// TODO Read all characters before sleep
 		time.Sleep(50 * time.Millisecond)
 	}
 }
