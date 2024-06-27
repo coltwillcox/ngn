@@ -24,6 +24,7 @@ const (
 	screenWidth       int16 = 320
 	screenHeight      int16 = 240
 	margin            int16 = 8
+	textViewHeight    int16 = 30
 )
 
 var (
@@ -85,10 +86,11 @@ func main() {
 		}
 
 		notification := fromMessage(serialMessage)
-		// tinyfont.WriteLine(&display, font, 10, i, notification.Title, white)
+		addToHistory(notification)
 		printProgram(notification.Program)
 		printSender(notification.Sender)
 		printMessage(notification.Title)
+		drawFooter()
 		uart.Write([]byte("\r\n"))
 		i = i + 20
 	}
@@ -129,10 +131,17 @@ type Notification struct {
 }
 
 func drawUI() {
-	tinydraw.Rectangle(&display, 0, 0, 320, 240, violet)
-	tinydraw.Rectangle(&display, 8, 8, 264, 30, violet)
-	tinydraw.Rectangle(&display, 8, 48, 304, 30, violet)
-	tinydraw.Rectangle(&display, 8, 88, 304, 122, violet)
+	// Around screen.
+	tinydraw.Rectangle(&display, 0, 0, screenWidth, screenHeight, violet)
+
+	// Program text area.
+	tinydraw.Rectangle(&display, margin, margin, screenWidth-margin*2-40, textViewHeight, violet) // 40 is image placeholder width
+
+	// Sender text area.
+	tinydraw.Rectangle(&display, margin, textViewHeight+margin*2, screenWidth-margin*2, textViewHeight, violet)
+
+	// Message text area.
+	tinydraw.Rectangle(&display, margin, textViewHeight*2+margin*3, 304, 126, violet)
 }
 
 func printProgram(program string) {
@@ -157,4 +166,11 @@ func drawFooter() {
 		}
 	}
 	tinyfont.WriteLine(&display, font, footerX+margin+225, footerY+13, "L/R/A/B", violet)
+}
+
+func addToHistory(notification *Notification) {
+	if len(history) >= historySize {
+		history = history[1:]
+	}
+	history = append(history, notification)
 }
