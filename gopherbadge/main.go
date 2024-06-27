@@ -52,6 +52,7 @@ var (
 	font        = &freemono.Regular9pt7b // Font used to display the text.
 	historySize = 10
 	history     = make([]*Notification, 0, historySize)
+	currentPage = 0
 )
 
 func main() {
@@ -71,11 +72,10 @@ func main() {
 	drawUI()
 	drawFooter()
 
-	printProgram("123456789012345678901234567890")
-	printSender("123456789012345678901234567890")
-	printMessage("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
+	// printProgram("123456789012345678901234567890")
+	// printSender("123456789012345678901234567890")
+	// printMessage("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
 
-	var i = int16(10)
 	for {
 		if uart.Buffered() == 0 {
 			time.Sleep(1000 * time.Millisecond)
@@ -96,12 +96,9 @@ func main() {
 
 		notification := fromMessage(serialMessage)
 		addToHistory(notification)
-		printProgram(notification.Program) // TODO Trim strings
-		printSender(notification.Sender)
-		printMessage(notification.Title)
+		drawCurrentPage()
 		drawFooter()
 		uart.Write([]byte("\r\n"))
-		i = i + 20
 	}
 }
 
@@ -189,6 +186,7 @@ func addToHistory(notification *Notification) {
 		history = history[1:]
 	}
 	history = append(history, notification)
+	currentPage = len(history) - 1
 }
 
 func trimIfNeeded(text string, length int) string {
@@ -222,4 +220,19 @@ func chunks(text string, chunkSize int, maximumChunks int) []string {
 	}
 	chunks = append(chunks, text[currentStart:])
 	return chunks
+}
+
+func drawCurrentPage() {
+	if len(history)-1 > currentPage {
+		return
+	}
+
+	currentNotification := history[currentPage]
+	if currentNotification == nil {
+		return
+	}
+
+	printProgram(currentNotification.Program)
+	printSender(currentNotification.Sender)
+	printMessage(currentNotification.Title)
 }
