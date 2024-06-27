@@ -15,12 +15,15 @@ import (
 const (
 	carriageReturn          = 10 // Character code for a new line.
 	newLine                 = 13 // Character code for a new line.
-	footerX           int16 = 8
+	footerX           int16 = 0
 	footerY           int16 = 217
 	currentRectWidth  int16 = 8
 	currentRectHeight int16 = 16
 	currentRectSpace  int16 = 6
 	maximumRects      int   = 10
+	screenWidth       int16 = 320
+	screenHeight      int16 = 240
+	margin            int16 = 8
 )
 
 var (
@@ -40,7 +43,9 @@ var (
 	green  = color.RGBA{0, 255, 0, 255}
 	violet = color.RGBA{116, 58, 213, 255}
 
-	font = &freemono.Regular9pt7b // Font used to display the text.
+	font        = &freemono.Regular9pt7b // Font used to display the text.
+	historySize = 10
+	history     = make([]*Notification, 0, historySize)
 )
 
 func main() {
@@ -51,16 +56,13 @@ func main() {
 
 	display.Configure(st7789.Config{
 		Rotation: st7789.ROTATION_270,
-		Height:   320,
-		Width:    240,
+		Height:   screenWidth,
+		Width:    screenHeight,
 	})
 
 	display.FillScreen(black)
 
 	drawUI()
-	printProgram("Program")
-	printSender("Ime")
-	printMessage("Poruka")
 	drawFooter()
 
 	var i = int16(10)
@@ -83,7 +85,10 @@ func main() {
 		}
 
 		notification := fromMessage(serialMessage)
-		tinyfont.WriteLine(&display, font, 10, i, notification.Title, white)
+		// tinyfont.WriteLine(&display, font, 10, i, notification.Title, white)
+		printProgram(notification.Program)
+		printSender(notification.Sender)
+		printMessage(notification.Title)
 		uart.Write([]byte("\r\n"))
 		i = i + 20
 	}
@@ -143,8 +148,13 @@ func printMessage(message string) {
 }
 
 func drawFooter() {
-	tinyfont.WriteLine(&display, font, footerX+225, footerY+13, "L/R/A/B", violet)
-	for i := 0; i < maximumRects; i++ {
-		tinydraw.Rectangle(&display, footerX+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
+	// tinydraw.FilledRectangle(&display, footerX, footerY, screenWidth, screenHeight-footerY, black)
+	for i := 0; i < historySize; i++ {
+		if len(history) > i && history[i] != nil {
+			tinydraw.FilledRectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
+		} else {
+			tinydraw.Rectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
+		}
 	}
+	tinyfont.WriteLine(&display, font, footerX+margin+225, footerY+13, "L/R/A/B", violet)
 }
