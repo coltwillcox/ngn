@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -47,12 +48,12 @@ func main() {
 		log(logz.LogInfo, "exited successfully")
 	}()
 
-	for msg := range msgCh {
-		if msg == nil {
+	for dbusMessage := range msgCh {
+		if dbusMessage == nil {
 			log(logz.LogInfo, "channel closed: exiting")
 			return
 		}
-		notification, err := notilog.FromMessage(msg)
+		notification, err := notilog.FromMessage(dbusMessage)
 		if err != nil {
 			if errors.Is(err, notilog.ErrNotANotification) {
 				log(logz.LogDebug, "not a notification")
@@ -63,8 +64,13 @@ func main() {
 		}
 		log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notification))
 
+		serialMessage, err := json.Marshal(notification)
+		if err != nil {
+			log(logz.LogErr, "failed to marshal notification", err)
+		}
+
 		// Send to serial
-		if _, err = port.Write([]byte(notification.Sender + notification.Title)); err != nil {
+		if _, err = port.Write(serialMessage); err != nil {
 			log(logz.LogErr, "failed to write to port", err)
 		}
 	}
