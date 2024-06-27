@@ -9,15 +9,12 @@ import (
 	"tinygo.org/x/drivers/st7789"
 	"tinygo.org/x/tinydraw"
 	"tinygo.org/x/tinyfont"
-
 	"tinygo.org/x/tinyfont/freemono"
 )
 
 const (
-	carriageReturn = 10  // CarriageReturn represents the character code for a new line.
-	newLine        = 13  // NewLine represents the character code for a new line.
-	BufSize        = 128 // bufSize represents the buffer size of the input before flushing memory
-
+	carriageReturn          = 10 // Character code for a new line.
+	newLine                 = 13 // Character code for a new line.
 	footerX           int16 = 8
 	footerY           int16 = 217
 	currentRectWidth  int16 = 8
@@ -27,7 +24,7 @@ const (
 )
 
 var (
-	uart = machine.Serial // uart is the name of the serial port stream
+	uart = machine.Serial // Serial port stream.
 
 	display = st7789.New(machine.SPI0,
 		machine.TFT_RST,       // TFT_RESET
@@ -35,10 +32,7 @@ var (
 		machine.TFT_CS,        // TFT_CS
 		machine.TFT_BACKLIGHT) // TFT_LITE
 
-	// terminal represents the board terminal stream
-	// terminal = tinyterm.NewTerminal(&display)
-
-	// all the main colors in RGBA code.
+	// Main colors in RGBA code.
 	black  = color.RGBA{0, 0, 0, 255}
 	white  = color.RGBA{255, 255, 255, 255}
 	red    = color.RGBA{255, 0, 0, 255}
@@ -46,9 +40,7 @@ var (
 	green  = color.RGBA{0, 255, 0, 255}
 	violet = color.RGBA{116, 58, 213, 255}
 
-	// font is the font used to display the text
-	// font = &proggy.TinySZ8pt7b
-	font = &freemono.Regular9pt7b
+	font = &freemono.Regular9pt7b // Font used to display the text.
 )
 
 func main() {
@@ -71,17 +63,6 @@ func main() {
 	printMessage("Poruka")
 	drawFooter()
 
-	// terminal.Configure(&tinyterm.Config{
-	// 	Font:              font,
-	// 	FontHeight:        24,
-	// 	FontOffset:        6,
-	// 	UseSoftwareScroll: true,
-	// })
-
-	// read the input
-	// input := make([]byte, bufSize)
-	// i := 0
-	// tinyfont.WriteLine(&display, &freemono.Regular12pt7b, 11, 11, "START", white)
 	var i = int16(10)
 	for {
 		if uart.Buffered() == 0 {
@@ -105,35 +86,6 @@ func main() {
 		tinyfont.WriteLine(&display, font, 10, i, notification.Title, white)
 		uart.Write([]byte("\r\n"))
 		i = i + 20
-
-		// if uart.Buffered() > 0 {
-		// 	data, _ := uart.ReadByte()
-
-		// 	// check the type of data
-		// 	switch data {
-		// 	// new line or new character, let's print the input and flush the memory
-		// 	case CarriageReturn, NewLine:
-		// 		writeInputAndFlush(input, i)
-		// 		i = 0
-		// 	// any other character, let's echo it
-		// 	default:
-		// 		// just echo the character
-		// 		uart.WriteByte(data)
-		// 		input[i] = data
-
-		// 		tinyfont.WriteLine(&display, &freemono.Regular12pt7b, 39, 39+20, string(data), white)
-
-		// 		// _ = terminal.WriteByte(data)
-		// 		i++
-
-		// 		// out of range, let's write the input and flush
-		// 		if i >= bufSize {
-		// 			writeInputAndFlush(input, i)
-
-		// 			i = 0
-		// 		}
-		// 	}
-		// }
 	}
 }
 
@@ -160,26 +112,6 @@ func fromMessage(serialMessage []byte) *Notification {
 
 	return &notification
 }
-
-// writeInputAndFlush writes input on terminal and to serial port
-// func writeInputAndFlush(input []byte, i int) {
-// 	// write on the board
-// 	// terminal.Write([]byte("\r\n"))
-// 	// terminal.Write([]byte("You typed: "))
-// 	// terminal.Write(input[:i])
-// 	tinyfont.WriteLine(&display, &freemono.Regular12pt7b, 39, 39+20, string(input), white)
-
-// 	// write on the serial port
-// 	// uart.Write([]byte("\r\n"))
-// 	// uart.Write([]byte("You typed: "))
-
-// 	// uart.Write(input[:i])
-
-// 	// write new lines in terminal and to serial port
-// 	// terminal.Write([]byte("\r\n"))
-
-// 	uart.Write([]byte("\r\n"))
-// }
 
 // TODO Separate fields into eg 2 parts, so they can be wrapped
 type Notification struct {
