@@ -13,18 +13,23 @@ import (
 )
 
 const (
-	carriageReturn          = 10 // Character code for a new line.
-	newLine                 = 13 // Character code for a new line.
-	footerX           int16 = 0
-	footerY           int16 = 217
-	currentRectWidth  int16 = 8
-	currentRectHeight int16 = 16
-	currentRectSpace  int16 = 6
-	maximumRects      int   = 10
-	screenWidth       int16 = 320
-	screenHeight      int16 = 240
-	margin            int16 = 8
-	textViewHeight    int16 = 30
+	carriageReturn             = 10 // Character code for a new line.
+	newLine                    = 13 // Character code for a new line.
+	footerX              int16 = 0
+	footerY              int16 = 217
+	currentRectWidth     int16 = 8
+	currentRectHeight    int16 = 16
+	currentRectSpace     int16 = 6
+	maximumRects         int   = 10
+	maximumProgramLength       = 23
+	maximumSenderLength        = 27
+	maximumMessageLength       = 27
+	maximumMessageRows         = 4
+	screenWidth          int16 = 320
+	screenHeight         int16 = 240
+	margin               int16 = 8
+	textViewHeight       int16 = 30
+	ellipsis                   = "..."
 )
 
 var (
@@ -66,6 +71,10 @@ func main() {
 	drawUI()
 	drawFooter()
 
+	printProgram("123456789012345678901234567890")
+	printSender("123456789012345678901234567890")
+	printMessage("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
+
 	var i = int16(10)
 	for {
 		if uart.Buffered() == 0 {
@@ -87,7 +96,7 @@ func main() {
 
 		notification := fromMessage(serialMessage)
 		addToHistory(notification)
-		printProgram(notification.Program)
+		printProgram(notification.Program) // TODO Trim strings
 		printSender(notification.Sender)
 		printMessage(notification.Title)
 		drawFooter()
@@ -145,15 +154,22 @@ func drawUI() {
 }
 
 func printProgram(program string) {
-	tinyfont.WriteLine(&display, font, 13, 27, program, white)
+	tinyfont.WriteLine(&display, font, 13, 27, trimIfNeeded(program, maximumProgramLength), white)
 }
 
 func printSender(sender string) {
-	tinyfont.WriteLine(&display, font, 13, 67, sender, white)
+	tinyfont.WriteLine(&display, font, 13, 67, trimIfNeeded(sender, maximumSenderLength), white)
 }
 
 func printMessage(message string) {
-	tinyfont.WriteLine(&display, font, 13, 107, message, white)
+	lines := chunks(message, maximumMessageLength, maximumMessageRows)
+	for i := 0; i < len(lines); i++ {
+		if i >= maximumMessageRows {
+			break
+		}
+		tinyfont.WriteLine(&display, font, 13, 107+int16(i)*30, trimIfNeeded(lines[i], maximumMessageLength), white)
+	}
+
 }
 
 func drawFooter() {
@@ -173,4 +189,37 @@ func addToHistory(notification *Notification) {
 		history = history[1:]
 	}
 	history = append(history, notification)
+}
+
+func trimIfNeeded(text string, length int) string {
+	if len(text) > length {
+		return text[:length-len(ellipsis)] + ellipsis
+	}
+
+	return text
+}
+
+func chunks(text string, chunkSize int, maximumChunks int) []string {
+	if len(text) == 0 {
+		return nil
+	}
+	if chunkSize >= len(text) {
+		return []string{text}
+	}
+	var chunks []string = make([]string, 0, maximumChunks)
+	currentLength := 0
+	currentStart := 0
+	for i := range text {
+		if currentLength == chunkSize {
+			chunks = append(chunks, text[currentStart:i])
+			currentLength = 0
+			currentStart = i
+		}
+		currentLength++
+		if len(chunks) >= maximumChunks-1 {
+			break
+		}
+	}
+	chunks = append(chunks, text[currentStart:])
+	return chunks
 }
