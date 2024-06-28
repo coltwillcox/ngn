@@ -7,29 +7,25 @@ import (
 	"time"
 
 	"tinygo.org/x/drivers/st7789"
-	"tinygo.org/x/tinydraw"
 	"tinygo.org/x/tinyfont"
 	"tinygo.org/x/tinyfont/freemono"
+
+	"github.com/coltwillcox/ngn/gopherbadge/views"
 )
 
 const (
-	carriageReturn             = 10 // Character code for a new line.
-	newLine                    = 13 // Character code for a new line.
-	footerX              int16 = 0
-	footerY              int16 = 217
-	currentRectWidth     int16 = 8
-	currentRectHeight    int16 = 16
-	currentRectSpace     int16 = 6
-	maximumRects         int   = 10
-	maximumProgramLength       = 23
-	maximumSenderLength        = 27
-	maximumMessageLength       = 27
-	maximumMessageRows         = 4
-	screenWidth          int16 = 320
-	screenHeight         int16 = 240
-	margin               int16 = 8
-	textViewHeight       int16 = 30
-	ellipsis                   = "..."
+	carriageReturn          = 10 // Character code for a new line.
+	newLine                 = 13 // Character code for a new line.
+	footerX           int16 = 0
+	footerY           int16 = 217
+	currentRectWidth  int16 = 8
+	currentRectHeight int16 = 16
+	currentRectSpace  int16 = 6
+	maximumRects      int   = 10
+	screenWidth       int16 = 320
+	screenHeight      int16 = 240
+	margin            int16 = 8
+	textViewHeight    int16 = 30
 )
 
 var (
@@ -53,6 +49,11 @@ var (
 	historySize = 10
 	history     = make([]*Notification, 0, historySize)
 	currentPage = 0
+
+	screenBorderRectView = views.RectView{}
+	programTextView      = views.TextView{}
+	senderTextView       = views.TextView{}
+	messageTextView      = views.TextView{}
 )
 
 func main() {
@@ -68,7 +69,6 @@ func main() {
 	})
 
 	display.FillScreen(black)
-
 	drawUI()
 	drawFooter()
 
@@ -137,45 +137,19 @@ type Notification struct {
 }
 
 func drawUI() {
-	// Around screen.
-	tinydraw.Rectangle(&display, 0, 0, screenWidth, screenHeight, violet)
-
-	// Program text area.
-	tinydraw.Rectangle(&display, margin, margin, screenWidth-margin*2-40, textViewHeight, violet) // 40 is image placeholder width
-
-	// Sender text area.
-	tinydraw.Rectangle(&display, margin, textViewHeight+margin*2, screenWidth-margin*2, textViewHeight, violet)
-
-	// Message text area.
-	tinydraw.Rectangle(&display, margin, textViewHeight*2+margin*3, 304, 126, violet)
-}
-
-func printProgram(program string) {
-	tinyfont.WriteLine(&display, font, 13, 27, trimIfNeeded(program, maximumProgramLength), white)
-}
-
-func printSender(sender string) {
-	tinyfont.WriteLine(&display, font, 13, 67, trimIfNeeded(sender, maximumSenderLength), white)
-}
-
-func printMessage(message string) {
-	lines := chunks(message, maximumMessageLength, maximumMessageRows)
-	for i := 0; i < len(lines); i++ {
-		if i >= maximumMessageRows {
-			break
-		}
-		tinyfont.WriteLine(&display, font, 13, 107+int16(i)*30, trimIfNeeded(lines[i], maximumMessageLength), white)
-	}
-
+	screenBorderRectView.SetDisplay(&display).SetColor(&violet).SetDimensions(0, 0, screenWidth, screenHeight).Draw()
+	programTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).SetText("111111111111111112222222222222222222222").Draw()
+	senderTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw().SetText("111111111111111112222222222222222222222")
+	messageTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw().SetText("1111111111aaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaaaaa11112222222222222222222222w12345678901111111111aaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaaaaa11112222222222222222222222w1234567890")
 }
 
 func drawFooter() {
 	// tinydraw.FilledRectangle(&display, footerX, footerY, screenWidth, screenHeight-footerY, black)
 	for i := 0; i < historySize; i++ {
 		if len(history) > i && history[i] != nil {
-			tinydraw.FilledRectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
+			drawFilledRectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
 		} else {
-			tinydraw.Rectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
+			drawRectangle(&display, footerX+margin+(int16(i)*(currentRectWidth+currentRectSpace)), footerY, currentRectWidth, currentRectHeight, violet)
 		}
 	}
 	tinyfont.WriteLine(&display, font, footerX+margin+225, footerY+13, "L/R/A/B", violet)
@@ -187,14 +161,6 @@ func addToHistory(notification *Notification) {
 	}
 	history = append(history, notification)
 	currentPage = len(history) - 1
-}
-
-func trimIfNeeded(text string, length int) string {
-	if len(text) > length {
-		return text[:length-len(ellipsis)] + ellipsis
-	}
-
-	return text
 }
 
 func chunks(text string, chunkSize int, maximumChunks int) []string {
@@ -232,7 +198,18 @@ func drawCurrentPage() {
 		return
 	}
 
-	printProgram(currentNotification.Program)
-	printSender(currentNotification.Sender)
-	printMessage(currentNotification.Title)
+	programTextView.SetText(currentNotification.Program)
+	senderTextView.SetText(currentNotification.Sender)
+	messageTextView.SetText(currentNotification.Title)
+}
+
+func drawRectangle(displayer *st7789.Device, x int16, y int16, w int16, h int16, color color.RGBA) {
+	displayer.DrawFastHLine(x, x+w-1, y, color)
+	displayer.DrawFastHLine(x, x+w-1, y+h-1, color)
+	displayer.DrawFastVLine(x, y, y+h-1, color)
+	displayer.DrawFastVLine(x+w-1, y, y+h-1, color)
+}
+
+func drawFilledRectangle(displayer *st7789.Device, x int16, y int16, w int16, h int16, color color.RGBA) {
+	displayer.FillRectangle(x, y, w, h, color)
 }

@@ -1,4 +1,4 @@
-module github.com/coltwillcox/ncd
+module github.com/coltwillcox/ngn
 
 go 1.22.3
 
