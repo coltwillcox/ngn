@@ -53,7 +53,7 @@ var (
 	programTextView      = views.TextView{}
 	senderTextView       = views.TextView{}
 	messageTextView      = views.TextView{}
-	history              = make([]*Notification, 0, historySize)
+	history              = make([]Notification, 0, historySize)
 	pagesRectViews       = make([]views.RectView, historySize)
 	currentPage          = 0
 	buttonA              = machine.BUTTON_A
@@ -98,30 +98,32 @@ func configure() {
 
 func drawUI() {
 	screenBorderRectView.SetDisplay(&display).SetColor(&violet).SetDimensions(0, 0, screenWidth, screenHeight).Draw()
-	programTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).SetText("111111111111111112222222222222222222222").Draw()
-	senderTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw().SetText("111111111111111112222222222222222222222")
-	messageTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw().SetText("1111111111aaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaaaaa11112222222222222222222222w12345678901111111111aaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaa1aaaaaaaaaaaaaaaaaaaaaaaaa11112222222222222222222222w1234567890")
+	programTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
+	senderTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
+	messageTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
 }
 
 func drawFooter() {
-	// tinydraw.FilledRectangle(&display, footerX, footerY, screenWidth, screenHeight-footerY, black)
 	for i := 0; i < historySize; i++ {
-		if len(history) > i && history[i] != nil {
-			pagesRectViews[i].SetBackgroundColor(&violet).Draw()
-		} else {
-			pagesRectViews[i].SetBackgroundColor(&black).Draw()
+		color := violet
+		backgroundColor := black
+		if i == currentPage {
+			color = green
 		}
+		if len(history) > i {
+			backgroundColor = violet
+		}
+		pagesRectViews[i].SetColor(&color).SetBackgroundColor(&backgroundColor).Draw()
 	}
 	tinyfont.WriteLine(&display, font, footerX+margin+225, footerY+13, "L/R/A/B", violet)
 }
 
 func loop() {
 	for {
-		// TODO Buttons func
+		time.Sleep(100 * time.Millisecond)
 		checkButtons()
 
 		if uart.Buffered() == 0 {
-			time.Sleep(50 * time.Millisecond)
 			continue
 		}
 
@@ -136,16 +138,15 @@ func loop() {
 				serialMessage = append(serialMessage, singleByte)
 			}
 		}
+		uart.Write([]byte("\r\n"))
 
-		notification := fromMessage(serialMessage)
-		addToHistory(notification)
+		addToHistory(fromMessage(serialMessage))
 		drawCurrentPage()
 		drawFooter()
-		uart.Write([]byte("\r\n"))
 	}
 }
 
-func fromMessage(serialMessage []byte) *Notification {
+func fromMessage(serialMessage []byte) Notification {
 	notification := Notification{}
 	message := string(serialMessage)
 	messageTrimmed := strings.TrimSuffix(strings.TrimPrefix(message, "{\""), "\"}")
@@ -166,10 +167,10 @@ func fromMessage(serialMessage []byte) *Notification {
 		}
 	}
 
-	return &notification
+	return notification
 }
 
-func addToHistory(notification *Notification) {
+func addToHistory(notification Notification) {
 	if len(history) >= historySize {
 		history = history[1:]
 	}
@@ -203,31 +204,24 @@ func chunks(text string, chunkSize int, maximumChunks int) []string {
 }
 
 func drawCurrentPage() {
-	if len(history)-1 > currentPage {
+	if len(history)-1 < currentPage || len(history) == 0 {
 		return
 	}
 
 	currentNotification := history[currentPage]
-	if currentNotification == nil {
-		return
-	}
-
 	programTextView.SetText(currentNotification.Program)
 	senderTextView.SetText(currentNotification.Sender)
 	messageTextView.SetText(currentNotification.Title)
 }
 
 func checkButtons() {
-	if buttonLeft.Get() {
+	if !buttonLeft.Get() {
 		navigatePage(false)
-	}
-	if buttonRight.Get() {
+	} else if !buttonRight.Get() {
 		navigatePage(true)
-	}
-	if buttonA.Get() {
+	} else if !buttonA.Get() {
 
-	}
-	if buttonB.Get() {
+	} else if !buttonB.Get() {
 
 	}
 }
@@ -243,5 +237,6 @@ func navigatePage(advance bool) {
 	} else if currentPage > historySize-1 {
 		currentPage = historySize - 1
 	}
-	// drawCurrentPage()
+	drawCurrentPage()
+	drawFooter()
 }
