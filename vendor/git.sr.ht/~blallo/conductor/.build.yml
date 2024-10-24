@@ -1,0 +1,16 @@
+image: archlinux
+packages:
+  - go
+sources:
+  - https://git.sr.ht/~blallo/conductor
+tasks:
+  - lint: |
+      cd conductor
+      make lint >> .diff
+      if [ $(cat .diff|wc -l) -ne 0 ]; then
+        cat .diff
+        exit 1
+      fi
+  - tests: |
+      cd conductor
+      make test

@@ -10,7 +10,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0
 	go.bug.st/serial v1.6.2
 	tinygo.org/x/drivers v0.27.0
-	tinygo.org/x/tinydraw v0.4.0
 	tinygo.org/x/tinyfont v0.4.0
 )
 
