@@ -178,6 +178,15 @@ func addToHistory(notification Notification) {
 	currentPage = len(history) - 1
 }
 
+func removeFromHistory(i int) bool {
+	if len(history) == 0 || len(history) <= i {
+		return false
+	}
+
+	history = append(history[:i], history[i+1:]...)
+	return true
+}
+
 func chunks(text string, chunkSize int, maximumChunks int) []string {
 	if len(text) == 0 {
 		return nil
@@ -205,6 +214,9 @@ func chunks(text string, chunkSize int, maximumChunks int) []string {
 
 func drawCurrentPage() {
 	if len(history)-1 < currentPage || len(history) == 0 {
+		programTextView.SetText("")
+		senderTextView.SetText("")
+		messageTextView.SetText("")
 		return
 	}
 
@@ -220,9 +232,12 @@ func checkButtons() {
 	} else if !buttonRight.Get() {
 		navigatePage(true)
 	} else if !buttonA.Get() {
-
+		if removeFromHistory(currentPage) {
+			drawCurrentPage()
+			drawFooter()
+		}
 	} else if !buttonB.Get() {
-
+		// TODO Clear all
 	}
 }
 

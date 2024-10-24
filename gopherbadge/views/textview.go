@@ -63,12 +63,14 @@ func (tv *TextView) SetText(text string) *TextView {
 
 	chunkz := chunks(text, int(maximumChars), int(maximumLines))
 
-	if len(chunkz[len(chunkz)-1]) > int(maximumChars) {
+	if len(chunkz) > 0 && len(chunkz[len(chunkz)-1]) > int(maximumChars) {
 		chunkz[len(chunkz)-1] = chunkz[len(chunkz)-1][:maximumChars-int16(len(ellipsis))] + ellipsis
 	}
 
-	tv.lines = chunkz
-	tv.drawText()
+	if !compareSlices(tv.lines, chunkz) {
+		tv.lines = chunkz
+		tv.drawText()
+	}
 	return tv
 }
 
