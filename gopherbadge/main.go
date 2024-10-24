@@ -187,6 +187,16 @@ func removeFromHistory(i int) bool {
 	return true
 }
 
+func clearHistory() bool {
+	if len(history) == 0 {
+		return false
+	}
+
+	history = make([]Notification, 0, historySize)
+	currentPage = 0
+	return true
+}
+
 func chunks(text string, chunkSize int, maximumChunks int) []string {
 	if len(text) == 0 {
 		return nil
@@ -237,7 +247,10 @@ func checkButtons() {
 			drawFooter()
 		}
 	} else if !buttonB.Get() {
-		// TODO Clear all
+		if clearHistory() {
+			drawCurrentPage()
+			drawFooter()
+		}
 	}
 }
 
