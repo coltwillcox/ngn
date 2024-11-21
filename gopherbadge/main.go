@@ -1,4 +1,3 @@
-// TODO LED on new notification
 package main
 
 import (
@@ -8,6 +7,7 @@ import (
 	"time"
 
 	"tinygo.org/x/drivers/st7789"
+	"tinygo.org/x/drivers/ws2812"
 	"tinygo.org/x/tinyfont"
 	"tinygo.org/x/tinyfont/freemono"
 
@@ -42,12 +42,15 @@ const (
 var (
 	uart                 = machine.Serial // Serial port stream.
 	display              = st7789.New(machine.SPI0, machine.TFT_RST, machine.TFT_WRX, machine.TFT_CS, machine.TFT_BACKLIGHT)
+	leds                 = machine.NEOPIXELS
+	ledsDriver           = ws2812.New(leds)
 	black                = color.RGBA{0, 0, 0, 255}
 	white                = color.RGBA{255, 255, 255, 255}
 	red                  = color.RGBA{255, 0, 0, 255}
 	blue                 = color.RGBA{0, 0, 255, 255}
 	green                = color.RGBA{0, 255, 0, 255}
 	violet               = color.RGBA{116, 58, 213, 255}
+	yellow               = color.RGBA{255, 255, 0, 255}
 	font                 = &freemono.Regular9pt7b // Font used to display the text.
 	screenBorderRectView = views.RectView{}
 	programTextView      = views.TextView{}
@@ -62,6 +65,7 @@ var (
 	buttonLeft           = machine.BUTTON_LEFT
 	buttonDown           = machine.BUTTON_DOWN
 	buttonRight          = machine.BUTTON_RIGHT
+	ledOpacity           = -1
 )
 
 func main() {
@@ -76,6 +80,8 @@ func configure() {
 		Frequency: 8000000,
 		Mode:      0,
 	})
+
+	leds.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
 	buttonA.Configure(machine.PinConfig{Mode: machine.PinInput})
 	buttonB.Configure(machine.PinConfig{Mode: machine.PinInput})
@@ -98,7 +104,7 @@ func configure() {
 
 func drawUI() {
 	screenBorderRectView.SetDisplay(&display).SetColor(&violet).SetDimensions(0, 0, screenWidth, screenHeight).Draw()
-	programTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
+	programTextView.SetDisplay(&display).SetFont(font).SetFontColor(&white).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
 	senderTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
 	messageTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
 }
@@ -120,6 +126,7 @@ func drawFooter() {
 
 func loop() {
 	for {
+		dimLeds()
 		time.Sleep(100 * time.Millisecond)
 		checkButtons()
 
@@ -143,6 +150,7 @@ func loop() {
 		addToHistory(fromMessage(serialMessage))
 		drawCurrentPage()
 		drawFooter()
+		lightUpLeds()
 	}
 }
 
@@ -241,16 +249,18 @@ func checkButtons() {
 		navigatePage(false)
 	} else if !buttonRight.Get() {
 		navigatePage(true)
-	} else if !buttonA.Get() {
+	} else if !buttonB.Get() {
 		if removeFromHistory(currentPage) {
 			drawCurrentPage()
 			drawFooter()
 		}
-	} else if !buttonB.Get() {
+		shutDownLeds()
+	} else if !buttonA.Get() {
 		if clearHistory() {
 			drawCurrentPage()
 			drawFooter()
 		}
+		shutDownLeds()
 	}
 }
 
@@ -267,4 +277,26 @@ func navigatePage(advance bool) {
 	}
 	drawCurrentPage()
 	drawFooter()
+}
+
+func dimLeds() {
+	if ledOpacity <= 0 {
+		return
+	}
+
+	ledsDriver.WriteColors([]color.RGBA{color.RGBA{uint8(ledOpacity), 0, 0, 255}, color.RGBA{0, 0, uint8(ledOpacity), 255}})
+	ledOpacity -= 10
+}
+
+func lightUpLeds() {
+	ledOpacity = 255
+}
+
+func shutDownLeds() {
+	if len(history) != 0 {
+		return
+	}
+
+	ledOpacity = 0
+	ledsDriver.WriteColors([]color.RGBA{color.RGBA{uint8(ledOpacity), 0, 0, 255}, color.RGBA{0, 0, uint8(ledOpacity), 255}})
 }

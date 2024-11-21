@@ -1,3 +1,5 @@
+// TODO Systray icon
+// TODO Exit menu option
 package main
 
 import (
