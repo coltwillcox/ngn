@@ -3,6 +3,7 @@ module github.com/coltwillcox/ngn
 go 1.22.3
 
 require (
+	fyne.io/systray v1.11.0
 	git.sr.ht/~blallo/conductor v0.0.0-20240311235629-c5090611ec49
 	git.sr.ht/~blallo/logz/interface v0.0.0-20240316184012-0e1f424844e6
 	git.sr.ht/~blallo/logz/zlog v0.0.0-20240316184012-0e1f424844e6

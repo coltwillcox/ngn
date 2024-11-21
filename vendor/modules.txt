@@ -1,3 +1,8 @@
+# fyne.io/systray v1.11.0
+## explicit; go 1.19
+fyne.io/systray
+fyne.io/systray/internal/generated/menu
+fyne.io/systray/internal/generated/notifier
 # git.sr.ht/~blallo/conductor v0.0.0-20240311235629-c5090611ec49
 ## explicit; go 1.20
 git.sr.ht/~blallo/conductor
@@ -16,11 +21,11 @@ github.com/creack/goselect
 # github.com/godbus/dbus/v5 v5.1.0
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
+github.com/godbus/dbus/v5/introspect
+github.com/godbus/dbus/v5/prop
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
-# github.com/json-iterator/tinygo v0.0.0-20211221071957-84b5b690c8a0
-## explicit; go 1.12
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
