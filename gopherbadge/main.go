@@ -15,12 +15,12 @@ import (
 )
 
 type Notification struct {
-	Program string
-	Title   string
-	Body    string
-	Sender  string
-	Serial  string
-	// CreatedAt time.Time `json:"created_at"`
+	Program   string
+	Title     string
+	Body      string
+	Sender    string
+	Serial    string
+	CreatedAt string
 }
 
 const (
@@ -172,6 +172,8 @@ func fromMessage(serialMessage []byte) Notification {
 			notification.Sender = keyValue[1]
 		case "serial":
 			notification.Serial = keyValue[1]
+		case "created_at":
+			notification.CreatedAt = keyValue[1][:len(keyValue[1])-5] // Remove miliseconds (.1234 format) from time.
 		}
 	}
 
@@ -240,7 +242,7 @@ func drawCurrentPage() {
 
 	currentNotification := history[currentPage]
 	programTextView.SetText(currentNotification.Program)
-	senderTextView.SetText(currentNotification.Sender)
+	senderTextView.SetText(currentNotification.CreatedAt)
 	messageTextView.SetText(currentNotification.Title)
 }
 

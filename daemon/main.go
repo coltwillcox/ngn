@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"git.sr.ht/~blallo/conductor"
 	logz "git.sr.ht/~blallo/logz/interface"
@@ -15,6 +16,15 @@ import (
 	"github.com/godbus/dbus/v5"
 	"go.bug.st/serial"
 )
+
+type Notification struct {
+	Program   string `json:"program"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	Sender    string `json:"sender"`
+	Serial    string `json:"serial"`
+	CreatedAt string `json:"created_at"`
+}
 
 func main() {
 	log := logFn()
@@ -55,7 +65,7 @@ func main() {
 			log(logz.LogInfo, "channel closed: exiting")
 			return
 		}
-		notification, err := notilog.FromMessage(dbusMessage)
+		notiNotification, err := notilog.FromMessage(dbusMessage)
 		if err != nil {
 			if errors.Is(err, notilog.ErrNotANotification) {
 				log(logz.LogDebug, "not a notification")
@@ -64,8 +74,18 @@ func main() {
 			}
 			continue
 		}
-		log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notification))
+		log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notiNotification))
 
+		// Converting notilog.Notification to our Notification because we have to send all strings.
+		// It's easier to unmarshal strings on badge side.
+		notification := Notification{
+			Program:   notiNotification.Program,
+			Title:     notiNotification.Title,
+			Body:      notiNotification.Body,
+			Sender:    notiNotification.Sender,
+			Serial:    strconv.Itoa(int(notiNotification.Serial)),
+			CreatedAt: notiNotification.CreatedAt.String(),
+		}
 		serialMessage, err := json.Marshal(notification)
 		if err != nil {
 			log(logz.LogErr, "failed to marshal notification", err)

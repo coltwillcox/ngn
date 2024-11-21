@@ -19,6 +19,8 @@ github.com/godbus/dbus/v5
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
+# github.com/json-iterator/tinygo v0.0.0-20211221071957-84b5b690c8a0
+## explicit; go 1.12
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
