@@ -1,5 +1,3 @@
-// TODO Exit menu option
-// TODO Reconnect function
 package main
 
 import (
@@ -29,7 +27,8 @@ type Notification struct {
 }
 
 const (
-	badgePort = "/dev/ttyACM0"
+	badgePort    = "/dev/ttyACM0"
+	connectCheck = 5 // Seconds
 )
 
 var (
@@ -37,8 +36,6 @@ var (
 	iconGreen []byte
 	//go:embed icons/icon-red.png
 	iconRed []byte
-	//go:embed icons/icon-yellow.png
-	iconYellow []byte
 )
 
 func main() {
@@ -46,9 +43,9 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(iconYellow)
-	systray.SetTitle("Awesome App")
-	systray.SetTooltip("Pretty awesome")
+	systray.SetIcon(iconRed)
+	systray.SetTitle("Neon Gopher Notifications")
+	systray.SetTooltip("Neon Gopher Notifications Daemon")
 	addExitItem()
 
 	go func() {
@@ -75,13 +72,9 @@ func onReady() {
 		for {
 			select {
 			case <-connectionChannel:
-				log(logz.LogInfo, "channel")
 				port, err := serial.Open(badgePort, &serial.Mode{})
 				if err != nil {
-					log(logz.LogErr, "failed to open port", err)
-					systray.SetIcon(iconRed)
-					time.Sleep(1 * time.Second)
-					log(logz.LogInfo, "reconnecting... 1")
+					prepareForReconnect(log, port, "failed to open port", err)
 					connectionChannel <- true
 					break
 				}
@@ -89,45 +82,28 @@ func onReady() {
 				// Port existing/connected listener.
 				go func() {
 					for {
-						log(logz.LogInfo, "func start")
-						time.Sleep(1 * time.Second)
+						time.Sleep(connectCheck * time.Second)
 						portsNames, err := serial.GetPortsList()
 						if err != nil {
-							log(logz.LogErr, "failed to get ports", err)
-							systray.SetIcon(iconRed)
-							port.Close()
-							time.Sleep(1 * time.Second)
-							log(logz.LogInfo, "reconnecting... 2")
+							prepareForReconnect(log, port, "failed to get ports", err)
 							break
 						}
 						if len(portsNames) == 0 {
-							log(logz.LogErr, "no serial ports found")
-							systray.SetIcon(iconRed)
-							port.Close()
-							time.Sleep(1 * time.Second)
-							log(logz.LogInfo, "reconnecting... 3")
+							prepareForReconnect(log, port, "no serial ports found", nil)
 							break
 						}
 						existing := false
 						for _, portName := range portsNames {
 							if portName == badgePort {
-								// log(logz.LogInfo, fmt.Sprintf("found port: %v\n", port))
 								existing = true
 								break
 							}
 						}
 						if !existing {
-							log(logz.LogInfo, "not existing. TODO reconnect")
-							systray.SetIcon(iconRed)
-							port.Close()
-							time.Sleep(1 * time.Second)
-							log(logz.LogInfo, "reconnecting... 4")
+							prepareForReconnect(log, port, "port does not exist", nil)
 							break
 						}
-						log(logz.LogInfo, "func end")
 					}
-					log(logz.LogInfo, "func exit")
-					// connectionChannel <- true
 					msgCh <- nil
 				}()
 
@@ -160,7 +136,7 @@ func onReady() {
 						Body:      notiNotification.Body,
 						Sender:    notiNotification.Sender,
 						Serial:    strconv.Itoa(int(notiNotification.Serial)),
-						CreatedAt: notiNotification.CreatedAt.String(),
+						CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
 					}
 					serialMessage, err := json.Marshal(notification)
 					if err != nil {
@@ -170,11 +146,7 @@ func onReady() {
 
 					// Send to serial
 					if _, err = port.Write(serialMessage); err != nil {
-						log(logz.LogErr, "failed to write to port", err)
-						systray.SetIcon(iconRed)
-						port.Close()
-						time.Sleep(1 * time.Second)
-						log(logz.LogInfo, "reconnecting... 5")
+						prepareForReconnect(log, port, "failed to write to port", err)
 						connectionChannel <- true
 						break
 					}
@@ -182,6 +154,21 @@ func onReady() {
 			}
 		}
 	}()
+}
+
+func prepareForReconnect(log func(logz.LogLevel, string, ...error), port serial.Port, message string, err error) {
+	log(logz.LogErr, message, err)
+	systray.SetIcon(iconRed)
+	if port != nil {
+		port.Close()
+
+	}
+	log(logz.LogInfo, "reconnecting...")
+	time.Sleep(connectCheck * time.Second)
+}
+
+func onExit() {
+	fmt.Println("onExit")
 }
 
 func addExitItem() {
@@ -195,10 +182,6 @@ func addExitItem() {
 	systray.AddSeparator()
 }
 
-func onExit() {
-	fmt.Println("onExit")
-}
-
 func logFn() func(logz.LogLevel, string, ...error) {
 	log := zlog.NewConsoleLogger()
 	return func(level logz.LogLevel, msg string, errs ...error) {
@@ -207,8 +190,8 @@ func logFn() func(logz.LogLevel, string, ...error) {
 			data["err"] = errs[0].Error()
 		}
 		log.Log(level, data)
-		if level == logz.LogErr {
-			// systray.Quit()
-		}
+		// if level == logz.LogErr {
+		// 	systray.Quit()
+		// }
 	}
 }

@@ -104,9 +104,9 @@ func configure() {
 
 func drawUI() {
 	screenBorderRectView.SetDisplay(&display).SetColor(&violet).SetDimensions(0, 0, screenWidth, screenHeight).Draw()
-	programTextView.SetDisplay(&display).SetFont(font).SetFontColor(&white).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
-	senderTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
-	messageTextView.SetDisplay(&display).SetFont(font).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
+	programTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
+	senderTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
+	messageTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
 }
 
 func drawFooter() {
@@ -114,7 +114,7 @@ func drawFooter() {
 		color := violet
 		backgroundColor := black
 		if i == currentPage {
-			color = green
+			color = yellow
 		}
 		if len(history) > i {
 			backgroundColor = violet
@@ -173,7 +173,7 @@ func fromMessage(serialMessage []byte) Notification {
 		case "serial":
 			notification.Serial = keyValue[1]
 		case "created_at":
-			notification.CreatedAt = keyValue[1][:len(keyValue[1])-5] // Remove miliseconds (.1234 format) from time.
+			notification.CreatedAt = keyValue[1]
 		}
 	}
 
