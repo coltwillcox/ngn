@@ -31,11 +31,12 @@ const (
 	connectCheck = 5 // Seconds
 )
 
+// Icons taken from https://github.com/egonelbre/gophers
 var (
-	//go:embed icons/icon-green.png
-	iconGreen []byte
-	//go:embed icons/icon-red.png
-	iconRed []byte
+	//go:embed icons/online.png
+	iconOnline []byte
+	//go:embed icons/offline.png
+	iconOffline []byte
 )
 
 func main() {
@@ -43,9 +44,9 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(iconRed)
 	systray.SetTitle("Neon Gopher Notifications")
-	systray.SetTooltip("Neon Gopher Notifications Daemon")
+	systray.SetIcon(iconOffline)
+	systray.SetTooltip("Connecting...")
 	addExitItem()
 
 	go func() {
@@ -57,7 +58,7 @@ func onReady() {
 		l, err := notilog.NewNotiListener(msgCh)
 		if err != nil {
 			log(logz.LogErr, "failed to initialize listener", err)
-			systray.SetIcon(iconRed)
+			systray.Quit()
 		}
 
 		go func() {
@@ -109,7 +110,8 @@ func onReady() {
 
 				log(logz.LogInfo, "connected")
 
-				systray.SetIcon(iconGreen)
+				systray.SetIcon(iconOnline)
+				systray.SetTooltip("Connected")
 
 				for dbusMessage := range msgCh {
 					if dbusMessage == nil {
@@ -158,12 +160,13 @@ func onReady() {
 
 func prepareForReconnect(log func(logz.LogLevel, string, ...error), port serial.Port, message string, err error) {
 	log(logz.LogErr, message, err)
-	systray.SetIcon(iconRed)
+	systray.SetIcon(iconOffline)
+	systray.SetTooltip("Connecting...")
 	if port != nil {
 		port.Close()
 
 	}
-	log(logz.LogInfo, "reconnecting...")
+	log(logz.LogInfo, "connecting...")
 	time.Sleep(connectCheck * time.Second)
 }
 

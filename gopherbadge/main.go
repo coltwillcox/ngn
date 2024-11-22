@@ -96,7 +96,6 @@ func configure() {
 		Width:    screenHeight,
 	})
 
-	display.FillScreen(black)
 	for i := 0; i < len(pagesRectViews); i++ {
 		pagesRectViews[i].SetDisplay(&display).SetDimensions(footerX+margin+(int16(i)*(pageRectWidth+pageRectSpace)), footerY, pageRectWidth, pageRectHeight).SetColor(&violet)
 	}
