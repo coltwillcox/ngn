@@ -4,6 +4,8 @@
 
 # ngn <sup>Neon Gopher Notifications</sup>
 
+<img src="https://raw.githubusercontent.com/coltwillcox/ngn/master/pictures/badge-0.jpg" width="800">
+
 ### Prerequisites
 
 -   Golang: https://go.dev/
