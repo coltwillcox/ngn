@@ -27,8 +27,9 @@ type Notification struct {
 }
 
 const (
-	badgePort    = "/dev/ttyACM0"
-	connectCheck = 5 // Seconds
+	badgePort     = "/dev/ttyACM0"
+	connectCheck  = 5 // Seconds
+	messageLength = 128
 )
 
 // Icons taken from https://github.com/egonelbre/gophers
@@ -130,7 +131,7 @@ func onReady() {
 					}
 					log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notiNotification))
 
-					// Converting notilog.Notification to our Notification because we have to send all strings.
+					// Converting notilog.Notification to our Notification because we have to send all types as strings.
 					// It's easier to unmarshal strings on badge side.
 					notification := Notification{
 						Program:   notiNotification.Program,
@@ -146,11 +147,30 @@ func onReady() {
 						continue
 					}
 
-					// Send to serial
-					if _, err = port.Write(serialMessage); err != nil {
-						prepareForReconnect(log, port, "failed to write to port", err)
-						connectionChannel <- true
-						break
+					// Maximum single message length that can be transmitted to Gopher Badge is 128 bytes.
+					// If message is larger than that, end will be chopped, therefore, we are spliting message into chunks of 128 bytes.
+					serialMessageParts := [][]byte{}
+					for i := 0; i < len(serialMessage); i += messageLength {
+						end := i + messageLength
+
+						if end > len(serialMessage) {
+							end = len(serialMessage)
+						}
+
+						serialMessageParts = append(serialMessageParts, serialMessage[i:end])
+					}
+
+					// Send to serial.
+					for _, serialMessagePart := range serialMessageParts {
+						fmt.Println(string(serialMessagePart))
+						if _, err = port.Write(serialMessagePart); err != nil {
+							prepareForReconnect(log, port, "failed to write to port", err)
+							connectionChannel <- true
+							break
+						}
+						// Give some time to Gopher Badge to process each part.
+						// Required for multipart messages.
+						time.Sleep(100 * time.Millisecond)
 					}
 				}
 			}

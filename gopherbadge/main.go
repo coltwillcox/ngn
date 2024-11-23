@@ -1,3 +1,4 @@
+// TODO Turn off LEDs on startup.
 package main
 
 import (
@@ -54,7 +55,7 @@ var (
 	font                 = &freemono.Regular9pt7b // Font used to display the text.
 	screenBorderRectView = views.RectView{}
 	programTextView      = views.TextView{}
-	senderTextView       = views.TextView{}
+	timeTextView         = views.TextView{}
 	messageTextView      = views.TextView{}
 	history              = make([]Notification, 0, historySize)
 	pagesRectViews       = make([]views.RectView, historySize)
@@ -104,7 +105,7 @@ func configure() {
 func drawUI() {
 	screenBorderRectView.SetDisplay(&display).SetColor(&violet).SetDimensions(0, 0, screenWidth, screenHeight).Draw()
 	programTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
-	senderTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
+	timeTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
 	messageTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
 }
 
@@ -124,6 +125,7 @@ func drawFooter() {
 }
 
 func loop() {
+	completeMessage := make([]byte, 0)
 	for {
 		dimLeds()
 		time.Sleep(100 * time.Millisecond)
@@ -144,12 +146,21 @@ func loop() {
 				serialMessage = append(serialMessage, singleByte)
 			}
 		}
-		uart.Write([]byte("\r\n"))
 
-		addToHistory(fromMessage(serialMessage))
+		uart.Write([]byte("\r\n"))
+		completeMessage = append(completeMessage, serialMessage...)
+
+		// Maximum message length is 128 bytes.
+		// Keeping parts until last part is transmitted.
+		if serialMessage[len(serialMessage)-1] != byte('}') {
+			continue
+		}
+
+		addToHistory(fromMessage(completeMessage))
 		drawCurrentPage()
 		drawFooter()
 		lightUpLeds()
+		completeMessage = make([]byte, 0)
 	}
 }
 
@@ -234,14 +245,14 @@ func chunks(text string, chunkSize int, maximumChunks int) []string {
 func drawCurrentPage() {
 	if len(history)-1 < currentPage || len(history) == 0 {
 		programTextView.SetText("")
-		senderTextView.SetText("")
+		timeTextView.SetText("")
 		messageTextView.SetText("")
 		return
 	}
 
 	currentNotification := history[currentPage]
 	programTextView.SetText(currentNotification.Program)
-	senderTextView.SetText(currentNotification.CreatedAt)
+	timeTextView.SetText(currentNotification.CreatedAt)
 	messageTextView.SetText(currentNotification.Title)
 }
 
