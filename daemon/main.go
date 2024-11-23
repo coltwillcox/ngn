@@ -45,9 +45,10 @@ func main() {
 }
 
 func onReady() {
-	systray.SetTitle("Neon Gopher Notifications")
 	systray.SetIcon(iconOffline)
+	systray.SetTitle("Neon Gopher Notifications")
 	systray.SetTooltip("Connecting...")
+	time.Sleep(100 * time.Millisecond) // Give some time to set icon.
 	addExitItem()
 
 	go func() {
@@ -162,7 +163,6 @@ func onReady() {
 
 					// Send to serial.
 					for _, serialMessagePart := range serialMessageParts {
-						fmt.Println(string(serialMessagePart))
 						if _, err = port.Write(serialMessagePart); err != nil {
 							prepareForReconnect(log, port, "failed to write to port", err)
 							connectionChannel <- true
