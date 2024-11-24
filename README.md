@@ -44,7 +44,7 @@ Build deamon:
 ```shell
 go build ./daemon/main.go 
 ```
-then make `main` startup item.
+then add file `main` to startup item.
 
 ![#9963ff](https://placehold.co/800x15/9963ff/9963ff.png)
 
