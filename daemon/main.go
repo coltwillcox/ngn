@@ -66,6 +66,7 @@ func onReady() {
 	time.Sleep(timeRest * time.Millisecond) // Give some time to set icon.
 
 	mClear := addClearItem()
+	addPauseItem()
 	mExit := addExitItem()
 
 	go func() {
@@ -97,13 +98,10 @@ func onReady() {
 			case <-mExit.ClickedCh:
 				systray.Quit()
 			case dbusMessage := <-channelMessage:
-				if port == nil {
+				if port == nil || dbusMessage == nil {
 					continue
 				}
-				if dbusMessage == nil {
-					channelConnection <- true
-					continue
-				}
+
 				notiNotification, err := notilog.FromMessage(dbusMessage)
 				if err != nil {
 					if errors.Is(err, notilog.ErrNotANotification) {
@@ -147,9 +145,8 @@ func onReady() {
 				// Send to serial.
 				for _, serialMessagePart := range serialMessageParts {
 					if _, err = port.Write(serialMessagePart); err != nil {
-						prepareForReconnect(log, &port, "failed to write to port", err)
-						channelConnection <- true
-						continue
+						log(logz.LogErr, "failed to write to port", err)
+						break
 					}
 					// Give some time to Gopher Badge to process each part. Required for multipart messages.
 					time.Sleep(timeRest * time.Millisecond)
@@ -218,6 +215,12 @@ func addClearItem() *systray.MenuItem {
 	mClear := systray.AddMenuItem("Clear", "Clear history")
 	mClear.Enable()
 	return mClear
+}
+
+func addPauseItem() *systray.MenuItem {
+	mPause := systray.AddMenuItemCheckbox("Pause", "Pause transmitting", true)
+	mPause.Enable()
+	return mPause
 }
 
 func addExitItem() *systray.MenuItem {
