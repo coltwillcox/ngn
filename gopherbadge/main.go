@@ -25,19 +25,20 @@ type Notification struct {
 }
 
 const (
-	carriageReturn       = 10 // Character code for a new line.
-	newLine              = 13 // Character code for a new line.
-	footerX        int16 = 0
-	footerY        int16 = 217
-	pageRectWidth  int16 = 8
-	pageRectHeight int16 = 16
-	pageRectSpace  int16 = 6
-	maximumRects   int   = 10
-	screenWidth    int16 = 320
-	screenHeight   int16 = 240
-	margin         int16 = 8
-	textViewHeight int16 = 30
-	historySize          = 10
+	carriageReturn        = 10 // Character code for a new line.
+	newLine               = 13 // Character code for a new line.
+	maximumRects   int    = 10
+	historySize    int    = 10
+	footerX        int16  = 0
+	footerY        int16  = 217
+	pageRectWidth  int16  = 8
+	pageRectHeight int16  = 16
+	pageRectSpace  int16  = 6
+	screenWidth    int16  = 320
+	screenHeight   int16  = 240
+	textViewHeight int16  = 30
+	margin         int16  = 8
+	commandClear   string = "clear"
 )
 
 var (
@@ -150,9 +151,13 @@ func loop() {
 		uart.Write([]byte("\r\n"))
 		completeMessage = append(completeMessage, serialMessage...)
 
-		// Maximum message length is 128 bytes.
-		// Keeping parts until last part is transmitted.
-		if serialMessage[len(serialMessage)-1] != byte('}') {
+		if string(completeMessage) == (commandClear) {
+			clearHistory()
+			completeMessage = nil
+			continue
+		} else if serialMessage[len(serialMessage)-1] != byte('}') {
+			// Maximum message length is 128 bytes.
+			// Keeping parts until last part is transmitted.
 			continue
 		}
 
@@ -207,14 +212,14 @@ func removeFromHistory(i int) bool {
 	return true
 }
 
-func clearHistory() bool {
-	if len(history) == 0 {
-		return false
+func clearHistory() {
+	if len(history) != 0 {
+		history = make([]Notification, 0, historySize)
+		currentPage = 0
+		drawCurrentPage()
+		drawFooter()
 	}
-
-	history = make([]Notification, 0, historySize)
-	currentPage = 0
-	return true
+	shutDownLeds()
 }
 
 func chunks(text string, chunkSize int, maximumChunks int) []string {
@@ -268,11 +273,7 @@ func checkButtons() {
 		}
 		shutDownLeds()
 	} else if !buttonA.Get() {
-		if clearHistory() {
-			drawCurrentPage()
-			drawFooter()
-		}
-		shutDownLeds()
+		clearHistory()
 	}
 }
 
