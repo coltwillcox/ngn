@@ -43,6 +43,8 @@ var (
 	//go:embed icons/offline.png
 	iconOffline []byte
 
+	paused = false
+
 	channelConnection chan bool
 	channelMessage    chan *dbus.Message
 	log               func(logz.LogLevel, string, ...error)
@@ -66,7 +68,7 @@ func onReady() {
 	time.Sleep(timeRest * time.Millisecond) // Give some time to set icon.
 
 	mClear := addClearItem()
-	addPauseItem()
+	mPause := addPauseItem()
 	mExit := addExitItem()
 
 	go func() {
@@ -95,10 +97,17 @@ func onReady() {
 				}
 				// Give some time to Gopher Badge to process each part. Required for multipart messages.
 				time.Sleep(timeRest * time.Millisecond)
+			case <-mPause.ClickedCh:
+				paused = !paused
+				if paused {
+					mPause.Check()
+				} else {
+					mPause.Uncheck()
+				}
 			case <-mExit.ClickedCh:
 				systray.Quit()
 			case dbusMessage := <-channelMessage:
-				if port == nil || dbusMessage == nil {
+				if paused || port == nil || dbusMessage == nil {
 					continue
 				}
 
@@ -218,7 +227,7 @@ func addClearItem() *systray.MenuItem {
 }
 
 func addPauseItem() *systray.MenuItem {
-	mPause := systray.AddMenuItemCheckbox("Pause", "Pause transmitting", true)
+	mPause := systray.AddMenuItemCheckbox("Pause", "Pause transmitting", paused)
 	mPause.Enable()
 	return mPause
 }
