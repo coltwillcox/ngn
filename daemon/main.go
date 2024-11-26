@@ -88,7 +88,7 @@ func onReady() {
 			select {
 			case <-mClear.ClickedCh:
 				if _, err = port.Write([]byte(commandClear)); err != nil {
-					prepareForReconnect(log, port, "failed to write to port", err)
+					prepareForReconnect(log, &port, "failed to write to port", err)
 					channelConnection <- true
 					continue
 				}
@@ -147,7 +147,7 @@ func onReady() {
 				// Send to serial.
 				for _, serialMessagePart := range serialMessageParts {
 					if _, err = port.Write(serialMessagePart); err != nil {
-						prepareForReconnect(log, port, "failed to write to port", err)
+						prepareForReconnect(log, &port, "failed to write to port", err)
 						channelConnection <- true
 						continue
 					}
@@ -157,7 +157,7 @@ func onReady() {
 			case <-channelConnection:
 				port, err = serial.Open(badgePort, &serial.Mode{})
 				if err != nil {
-					prepareForReconnect(log, port, "failed to open port", err)
+					prepareForReconnect(log, &port, "failed to open port", err)
 					channelConnection <- true
 					continue
 				}
@@ -172,11 +172,11 @@ func onReady() {
 						time.Sleep(timeConnectCheck * time.Second)
 						portsNames, err := serial.GetPortsList()
 						if err != nil {
-							prepareForReconnect(log, port, "failed to get ports", err)
+							prepareForReconnect(log, &port, "failed to get ports", err)
 							break
 						}
 						if len(portsNames) == 0 {
-							prepareForReconnect(log, port, "no serial ports found", nil)
+							prepareForReconnect(log, &port, "no serial ports found", nil)
 							break
 						}
 						existing := false
@@ -187,13 +187,12 @@ func onReady() {
 							}
 						}
 						if !existing {
-							prepareForReconnect(log, port, "port does not exist", nil)
+							prepareForReconnect(log, &port, "port does not exist", nil)
 							break
 						}
 					}
 					channelConnection <- true
 				}()
-
 			}
 		}
 	}()
@@ -203,13 +202,13 @@ func onExit() {
 	log(logz.LogInfo, "exiting...")
 }
 
-func prepareForReconnect(log func(logz.LogLevel, string, ...error), port serial.Port, message string, err error) {
+func prepareForReconnect(log func(logz.LogLevel, string, ...error), port *serial.Port, message string, err error) {
 	log(logz.LogErr, message, err)
 	systray.SetIcon(iconOffline)
 	systray.SetTooltip("Reconnecting...")
-	if port != nil {
-		port.Close()
-		port = nil
+	if *port != nil {
+		(*port).Close()
+		*port = nil
 	}
 	log(logz.LogInfo, "reconnecting...")
 	time.Sleep(timeConnectCheck * time.Second)
