@@ -18,6 +18,12 @@ git.sr.ht/~blallo/notilog
 # github.com/creack/goselect v0.1.2
 ## explicit; go 1.13
 github.com/creack/goselect
+# github.com/gabriel-vasile/mimetype v1.4.7
+## explicit; go 1.20
+github.com/gabriel-vasile/mimetype
+github.com/gabriel-vasile/mimetype/internal/charset
+github.com/gabriel-vasile/mimetype/internal/json
+github.com/gabriel-vasile/mimetype/internal/magic
 # github.com/godbus/dbus/v5 v5.1.0
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
@@ -32,19 +38,57 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+## explicit
+github.com/nfnt/resize
 # github.com/rs/zerolog v1.33.0
 ## explicit; go 1.15
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
+# github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
+## explicit; go 1.17
+github.com/srwiley/oksvg
+# github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
+## explicit; go 1.17
+github.com/srwiley/rasterx
 # go.bug.st/serial v1.6.2
 ## explicit; go 1.17
 go.bug.st/serial
 go.bug.st/serial/unixutils
-# golang.org/x/sys v0.18.0
+# golang.org/x/image v0.0.0-20220617043117-41969df76e82
+## explicit; go 1.12
+golang.org/x/image/colornames
+golang.org/x/image/math/fixed
+golang.org/x/image/vector
+# golang.org/x/net v0.31.0
+## explicit; go 1.18
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/html/charset
+# golang.org/x/sys v0.27.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/text v0.20.0
+## explicit; go 1.18
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/runes
+golang.org/x/text/transform
 # tinygo.org/x/drivers v0.27.0
 ## explicit; go 1.18
 tinygo.org/x/drivers

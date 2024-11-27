@@ -1,5 +1,4 @@
-// TODO Menu option to pause.
-// TODO Change icon on incoming notification.
+// TODO Menu navigation L/R/A/B
 package main
 
 import (
@@ -17,23 +16,29 @@ import (
 	"git.sr.ht/~blallo/notilog"
 	"github.com/godbus/dbus/v5"
 	"go.bug.st/serial"
+
+	"github.com/coltwillcox/ngn/daemon/utils"
 )
 
 type Notification struct {
-	Program   string `json:"program"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	Sender    string `json:"sender"`
-	Serial    string `json:"serial"`
-	CreatedAt string `json:"created_at"`
+	Program   string `json:"program,omitempty"`
+	Title     string `json:"title,omitempty"`
+	Body      string `json:"body,omitempty"`
+	Sender    string `json:"sender,omitempty"`
+	Serial    string `json:"serial,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	Icon      string `json:"icon,omitempty"`
 }
 
 const (
-	badgePort        = "/dev/ttyACM0"
-	commandClear     = "clear"
-	messageLength    = 128
-	timeConnectCheck = 5   // Seconds.
-	timeRest         = 100 // Milliseconds.
+	badgePort              = "/dev/ttyACM0"
+	commandClear           = "clear"
+	messageLength          = 128
+	timeConnectCheck       = 5   // Seconds.
+	timeRest               = 10  // Milliseconds.
+	timePartialSender      = 50  // Milliseconds.
+	timeSender             = 100 // Milliseconds.
+	separator         rune = '*'
 )
 
 // Icons taken from https://github.com/egonelbre/gophers
@@ -90,13 +95,13 @@ func onReady() {
 		for {
 			select {
 			case <-mClear.ClickedCh:
-				if _, err = port.Write([]byte(commandClear)); err != nil {
+				if _, err = port.Write([]byte(commandClear + string(separator))); err != nil {
 					prepareForReconnect(log, &port, "failed to write to port", err)
 					channelConnection <- true
 					continue
 				}
-				// Give some time to Gopher Badge to process each part. Required for multipart messages.
-				time.Sleep(timeRest * time.Millisecond)
+				// Give some time to Gopher Badge to process message.
+				time.Sleep(timeSender * time.Millisecond)
 			case <-mPause.ClickedCh:
 				paused = !paused
 				if paused {
@@ -120,6 +125,7 @@ func onReady() {
 					}
 					continue
 				}
+
 				log(logz.LogInfo, fmt.Sprintf("message intercepted: %v\n", notiNotification))
 
 				// Converting notilog.Notification to our Notification because we have to send all types as strings.
@@ -131,6 +137,7 @@ func onReady() {
 					Sender:    notiNotification.Sender,
 					Serial:    strconv.Itoa(int(notiNotification.Serial)),
 					CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+					Icon:      utils.GenerateImageData(utils.ExtractFilePath(dbusMessage.Body)),
 				}
 				serialMessage, err := json.Marshal(notification)
 				if err != nil {
@@ -138,6 +145,7 @@ func onReady() {
 					continue
 				}
 
+				serialMessage = append(serialMessage, byte(separator))
 				// Maximum single message length that can be transmitted to Gopher Badge is 128 bytes.
 				// If message is larger than that, end will be truncated, therefore, we are spliting message into chunks of 128 bytes.
 				serialMessageParts := [][]byte{}
@@ -158,8 +166,10 @@ func onReady() {
 						break
 					}
 					// Give some time to Gopher Badge to process each part. Required for multipart messages.
-					time.Sleep(timeRest * time.Millisecond)
+					time.Sleep(timePartialSender * time.Millisecond)
 				}
+				// Give some time to Gopher Badge to process message.
+				time.Sleep(timeSender * time.Millisecond)
 			case <-channelConnection:
 				port, err = serial.Open(badgePort, &serial.Mode{})
 				if err != nil {

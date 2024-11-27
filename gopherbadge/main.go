@@ -1,4 +1,4 @@
-// TODO Turn off LEDs on startup.
+// TODO Paused icon.
 package main
 
 import (
@@ -22,11 +22,14 @@ type Notification struct {
 	Sender    string
 	Serial    string
 	CreatedAt string
+	Icon      string
 }
 
 const (
-	carriageReturn        = 10 // Character code for a new line.
-	newLine               = 13 // Character code for a new line.
+	carriageReturn        = 10  // Character code for a new line.
+	newLine               = 13  // Character code for a new line.
+	timeRest              = 10  // Milliseconds.
+	timeDimmer            = 100 // Milliseconds.
 	maximumRects   int    = 10
 	historySize    int    = 10
 	footerX        int16  = 0
@@ -39,6 +42,7 @@ const (
 	textViewHeight int16  = 30
 	margin         int16  = 8
 	commandClear   string = "clear"
+	separator      rune   = '*'
 )
 
 var (
@@ -58,6 +62,7 @@ var (
 	programTextView      = views.TextView{}
 	timeTextView         = views.TextView{}
 	messageTextView      = views.TextView{}
+	iconImageView        = views.ImageView{}
 	history              = make([]Notification, 0, historySize)
 	pagesRectViews       = make([]views.RectView, historySize)
 	currentPage          = 0
@@ -74,7 +79,59 @@ func main() {
 	configure()
 	drawUI()
 	drawFooter()
-	loop()
+
+	channelMessage := make(chan string, 1)
+
+	go func() {
+		for {
+			time.Sleep(timeDimmer * time.Millisecond)
+			dimLeds()
+			checkButtons()
+		}
+	}()
+
+	go func() {
+		text := make([]byte, 0)
+		for {
+			time.Sleep(timeRest * time.Millisecond)
+			if uart.Buffered() == 0 {
+				continue
+			}
+
+			for {
+				singleByte, _ := uart.ReadByte()
+				switch singleByte {
+				case carriageReturn, newLine:
+					continue
+				case byte(separator):
+					channelMessage <- string(text)
+					text = nil
+					break
+				default:
+					text = append(text, singleByte)
+				}
+
+				if uart.Buffered() == 0 {
+					break
+				}
+			}
+		}
+	}()
+
+	for {
+		select {
+		case message := <-channelMessage:
+			switch message {
+			case commandClear:
+				clearHistory()
+			default:
+				addToHistory(fromMessage(message))
+				drawCurrentPage()
+				drawFooter()
+				lightUpLeds()
+			}
+		}
+	}
 }
 
 func configure() {
@@ -108,6 +165,7 @@ func drawUI() {
 	programTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, margin, screenWidth-margin*2-40, textViewHeight).Draw()
 	timeTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight+margin*2-1, screenWidth-margin*2, textViewHeight).Draw()
 	messageTextView.SetDisplay(&display).SetFont(font).SetFontColor(&yellow).SetColor(&violet).SetDimensions(margin, textViewHeight*2+margin*3-2, 304, 126).Draw()
+	iconImageView.SetDisplay(&display).SetBackgroundColor(&black).SetDimensions(281, margin, textViewHeight, textViewHeight).Draw()
 }
 
 func drawFooter() {
@@ -125,53 +183,8 @@ func drawFooter() {
 	tinyfont.WriteLine(&display, font, footerX+margin+225, footerY+13, "L/R/A/B", violet)
 }
 
-func loop() {
-	completeMessage := make([]byte, 0)
-	for {
-		dimLeds()
-		time.Sleep(100 * time.Millisecond)
-		checkButtons()
-
-		if uart.Buffered() == 0 {
-			continue
-		}
-
-		serialMessage := make([]byte, 0)
-
-		for uart.Buffered() > 0 {
-			singleByte, _ := uart.ReadByte()
-			switch singleByte {
-			case carriageReturn, newLine:
-				continue
-			default:
-				serialMessage = append(serialMessage, singleByte)
-			}
-		}
-
-		uart.Write([]byte("\r\n"))
-		completeMessage = append(completeMessage, serialMessage...)
-
-		if string(completeMessage) == (commandClear) {
-			clearHistory()
-			completeMessage = nil
-			continue
-		} else if serialMessage[len(serialMessage)-1] != byte('}') {
-			// Maximum message length is 128 bytes.
-			// Keeping parts until last part is transmitted.
-			continue
-		}
-
-		addToHistory(fromMessage(completeMessage))
-		drawCurrentPage()
-		drawFooter()
-		lightUpLeds()
-		completeMessage = make([]byte, 0)
-	}
-}
-
-func fromMessage(serialMessage []byte) Notification {
+func fromMessage(message string) Notification {
 	notification := Notification{}
-	message := string(serialMessage)
 	messageTrimmed := strings.TrimSuffix(strings.TrimPrefix(message, "{\""), "\"}")
 	parts := strings.Split(messageTrimmed, "\",\"")
 	for _, part := range parts {
@@ -189,6 +202,8 @@ func fromMessage(serialMessage []byte) Notification {
 			notification.Serial = keyValue[1]
 		case "created_at":
 			notification.CreatedAt = keyValue[1]
+		case "icon":
+			notification.Icon = keyValue[1]
 		}
 	}
 
@@ -252,6 +267,7 @@ func drawCurrentPage() {
 		programTextView.SetText("")
 		timeTextView.SetText("")
 		messageTextView.SetText("")
+		iconImageView.SetImage("")
 		return
 	}
 
@@ -259,6 +275,7 @@ func drawCurrentPage() {
 	programTextView.SetText(currentNotification.Program)
 	timeTextView.SetText(currentNotification.CreatedAt)
 	messageTextView.SetText(currentNotification.Title)
+	iconImageView.SetImage(currentNotification.Icon)
 }
 
 func checkButtons() {
