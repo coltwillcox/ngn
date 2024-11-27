@@ -54,6 +54,7 @@ go run ./daemon/main.go
 Test notifications:
 ```shell
 notify-send "Hello world"
+notify-send --icon=/home/user/Pictures/user.jpg "Hello world"
 ```
 
 Build deamon:
