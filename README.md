@@ -6,6 +6,22 @@
 
 <img src="https://raw.githubusercontent.com/coltwillcox/ngn/master/pictures/badge-0.jpg" width="800">
 
+### Description
+
+ngn contains two parts: one is the code that will flash the Gopher Badge, the other is the code that will run on your computer (as daemon), and will send notifications to the badge (via USB cable). Now notifications can annoy you on this device as well!
+The code was tested on Linux, and I have no idea how it will work on MacOS and Windows.
+
+### Features
+-   Listens for notifications on "org.freedesktop.Notifications" interface.
+-   Does not prevent notifications on host computer.
+-   Flashes eyes (LEDs) on incomming notification.
+-   Keeps eyes slightly on while there is at least one notification in history.
+-   Displays sender application name, date, time, message, and application icon (if any).
+-   Keeps history of last 10 notifications.
+-   Navigates through history with Left and Right buttons.
+-   Clears complete notification history with A key.
+-   Clears single notification with B key.
+
 ### Prerequisites
 
 -   Golang: https://go.dev/
