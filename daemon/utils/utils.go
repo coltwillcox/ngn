@@ -61,6 +61,31 @@ func GenerateImageData(filePath string) string {
 		scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
 		raster := rasterx.NewDasher(w, h, scanner)
 		icon.Draw(raster, 1.0)
+
+		// Some SVGs are badly rasterized, with resulting R, G, B colors as just zeros,
+		// so it will be converted to (at least) usable grayscale.
+		ok := false
+		for x := 0; x < img.Bounds().Max.X; x++ {
+			for y := 0; y < img.Bounds().Max.Y; y++ {
+				r, g, b, _ := img.At(x, y).RGBA()
+				if r != 0 || g != 0 || b != 0 {
+					ok = true
+					break
+				}
+			}
+			if ok {
+				break
+			}
+		}
+		if !ok {
+			for x := 0; x < img.Bounds().Max.X; x++ {
+				for y := 0; y < img.Bounds().Max.Y; y++ {
+					_, _, _, a := img.At(x, y).RGBA()
+					img.Set(x, y, color.RGBA{R: uint8(a), G: uint8(a), B: uint8(a), A: 255})
+				}
+			}
+		}
+
 	case "image/jpeg":
 		decodedImage, err := jpeg.Decode(file)
 		if err != nil {
