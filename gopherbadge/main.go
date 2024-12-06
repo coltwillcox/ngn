@@ -1,3 +1,4 @@
+// TODO Deleting single notification should not stay on empty field.
 // TODO Paused icon.
 package main
 

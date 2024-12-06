@@ -1,3 +1,4 @@
+// TODO Default icon.
 // TODO Menu navigation L/R/A/B
 package main
 
@@ -94,6 +95,8 @@ func onReady() {
 		channelConnection <- true
 		for {
 			select {
+			case <-mExit.ClickedCh:
+				systray.Quit()
 			case <-mClear.ClickedCh:
 				if _, err = port.Write([]byte(commandClear + string(separator))); err != nil {
 					prepareForReconnect(log, &port, "failed to write to port", err)
@@ -109,8 +112,6 @@ func onReady() {
 				} else {
 					mPause.Uncheck()
 				}
-			case <-mExit.ClickedCh:
-				systray.Quit()
 			case dbusMessage := <-channelMessage:
 				if paused || port == nil || dbusMessage == nil {
 					continue
@@ -173,8 +174,10 @@ func onReady() {
 			case <-channelConnection:
 				port, err = serial.Open(badgePort, &serial.Mode{})
 				if err != nil {
-					prepareForReconnect(log, &port, "failed to open port", err)
-					channelConnection <- true
+					go func() {
+						prepareForReconnect(log, &port, "failed to open port", err)
+						channelConnection <- true
+					}()
 					continue
 				}
 
