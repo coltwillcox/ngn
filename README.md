@@ -9,7 +9,7 @@
 ### Description
 
 ngn contains two parts: one is the code that will flash the Gopher Badge, the other is the code that will run on your computer (as daemon), and will send notifications to the badge (via USB cable). Now notifications can annoy you on this device as well!
-The code was tested on Linux, and I have no idea how it will work on MacOS and Windows.
+The code was tested on Linux, and I have no idea how and will it work on MacOS and Windows.
 
 ### Features
 -   Listens for notifications on "org.freedesktop.Notifications" interface.
