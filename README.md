@@ -24,7 +24,7 @@ The code was tested on Linux, and I have no idea how and will it work on MacOS a
 
 ### Prerequisites
 
--   Golang: https://go.dev/
+-   Go: https://go.dev/
 -   Tinygo: https://tinygo.org/
 -   Gopher Badge (battery not required): https://gopherbadge.com/
 -   USB cable
