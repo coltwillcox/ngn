@@ -64,19 +64,3 @@ go build ./daemon/main.go
 then add file `main` to startup item.
 
 ![#9963ff](https://placehold.co/800x15/9963ff/9963ff.png)
-
-### Daemon <sup>daemon/main.go</sup>
-
-Info:
-
-Screens:
-
-![#9963ff](https://placehold.co/800x15/9963ff/9963ff.png)
-
-### Gopher Badge <sup>gopherbadge/main.go</sup>
-
-Info:
-
-Screens:
-
-![#9963ff](https://placehold.co/800x15/9963ff/9963ff.png)
