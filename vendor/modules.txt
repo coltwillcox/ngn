@@ -18,6 +18,9 @@ git.sr.ht/~blallo/notilog
 # github.com/creack/goselect v0.1.2
 ## explicit; go 1.13
 github.com/creack/goselect
+# github.com/fogleman/gg v1.3.0
+## explicit
+github.com/fogleman/gg
 # github.com/gabriel-vasile/mimetype v1.4.7
 ## explicit; go 1.20
 github.com/gabriel-vasile/mimetype
@@ -29,6 +32,10 @@ github.com/gabriel-vasile/mimetype/internal/magic
 github.com/godbus/dbus/v5
 github.com/godbus/dbus/v5/introspect
 github.com/godbus/dbus/v5/prop
+# github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+## explicit
+github.com/golang/freetype/raster
+github.com/golang/freetype/truetype
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
@@ -59,6 +66,11 @@ go.bug.st/serial/unixutils
 # golang.org/x/image v0.0.0-20220617043117-41969df76e82
 ## explicit; go 1.12
 golang.org/x/image/colornames
+golang.org/x/image/draw
+golang.org/x/image/font
+golang.org/x/image/font/basicfont
+golang.org/x/image/font/gofont/goregular
+golang.org/x/image/math/f64
 golang.org/x/image/math/fixed
 golang.org/x/image/vector
 # golang.org/x/net v0.31.0

@@ -1,13 +1,12 @@
-// TODO Default icon.
 // TODO Menu navigation L/R/A/B
 package main
 
 import (
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"fyne.io/systray"
@@ -18,6 +17,8 @@ import (
 	"github.com/godbus/dbus/v5"
 	"go.bug.st/serial"
 
+	"github.com/coltwillcox/ngn/daemon/assets"
+	"github.com/coltwillcox/ngn/daemon/media"
 	"github.com/coltwillcox/ngn/daemon/utils"
 )
 
@@ -44,11 +45,6 @@ const (
 
 // Icons taken from https://github.com/egonelbre/gophers
 var (
-	//go:embed icons/online.png
-	iconOnline []byte
-	//go:embed icons/offline.png
-	iconOffline []byte
-
 	paused = false
 
 	channelConnection chan bool
@@ -68,7 +64,7 @@ func initialize() {
 }
 
 func onReady() {
-	systray.SetIcon(iconOffline)
+	systray.SetIcon(assets.IconOffline)
 	systray.SetTitle("Neon Gopher Notifications")
 	systray.SetTooltip("Connecting...")
 	time.Sleep(timeRest * time.Millisecond) // Give some time to set icon.
@@ -131,6 +127,11 @@ func onReady() {
 
 				// Converting notilog.Notification to our Notification because we have to send all types as strings.
 				// It's easier to unmarshal strings on badge side.
+				iconFilePath := utils.ExtractFilePath(dbusMessage.Body)
+				iconFallback := "A"
+				if len(notiNotification.Title) > 1 {
+					iconFallback = strings.ToUpper(notiNotification.Program[:1])
+				}
 				notification := Notification{
 					Program:   notiNotification.Program,
 					Title:     notiNotification.Title,
@@ -138,7 +139,7 @@ func onReady() {
 					Sender:    notiNotification.Sender,
 					Serial:    strconv.Itoa(int(notiNotification.Serial)),
 					CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
-					Icon:      utils.GenerateImageData(utils.ExtractFilePath(dbusMessage.Body)),
+					Icon:      media.GenerateImageData(iconFilePath, iconFallback),
 				}
 				serialMessage, err := json.Marshal(notification)
 				if err != nil {
@@ -181,7 +182,7 @@ func onReady() {
 					continue
 				}
 
-				systray.SetIcon(iconOnline)
+				systray.SetIcon(assets.IconOnline)
 				systray.SetTooltip("Connected")
 				log(logz.LogInfo, "connected")
 
@@ -223,7 +224,7 @@ func onExit() {
 
 func prepareForReconnect(log func(logz.LogLevel, string, ...error), port *serial.Port, message string, err error) {
 	log(logz.LogErr, message, err)
-	systray.SetIcon(iconOffline)
+	systray.SetIcon(assets.IconOffline)
 	systray.SetTooltip("Reconnecting...")
 	if *port != nil {
 		(*port).Close()
